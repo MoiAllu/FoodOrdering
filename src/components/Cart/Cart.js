@@ -4,11 +4,13 @@ import {useContext} from 'react';
 import CartContext from '../../store/cart-context';
 import CartItem from './CartItem';
 import CheckOut from './CheckOut';
-import { useState } from 'react';
+import React,{ useState } from 'react';
 
 const Cart = (props) => {
   const [isCheckout,setIsCheckout]=useState(false);
   const cartCtx=useContext(CartContext);
+  const [isSubmitting,setIsSubmitting]=useState(false);
+  const [didSubmit,setDidSubmit]=useState(false);
   const totalAmount=`$${cartCtx.totalAmount.toFixed(2)}`;
   const hasItem=cartCtx.items.length > 0;
   const cartItemRemoveHandler = (id) => {
@@ -19,6 +21,7 @@ const Cart = (props) => {
     cartCtx.addItem({...item, amount: 1});
   };
   const cartOrderItemHandler=userdata=>{
+    setIsSubmitting(true);
     fetch('https://react-custom-a7155-default-rtdb.firebaseio.com/orders.json',{
       method:'post',
       body: JSON.stringify({
@@ -26,6 +29,9 @@ const Cart = (props) => {
         orderedItems: cartCtx.items
       })
     })
+    setIsSubmitting(false);
+    setDidSubmit(true);
+    cartCtx.clearCart();
   }
 
   const cartItems = (
@@ -53,15 +59,29 @@ const Cart = (props) => {
       </div>
         );
       }
-  return (
-    <Modal onClose={props.onClose}>
-      {cartItems}
+      const cartModalContent=<React.Fragment>
+        {cartItems}
       <div className={classes.total}>
         <span>Total Amount</span>
         <span>{totalAmount}</span>
       </div>
       {isCheckout && <CheckOut onConfirm={cartOrderItemHandler} onCancel={props.onClose}/>}
       {!isCheckout&& modalAction()}
+      </React.Fragment>
+      const didSubmitContent=(
+        <React.Fragment>
+          <p>Your Order successfully submitted</p>
+          <div className={classes.actions}>
+        <button className={classes.button} onClick={props.onClose}>Close</button>
+        </div>
+        </React.Fragment>
+      )
+
+  return (
+    <Modal onClose={props.onClose}>
+      {!isSubmitting&& !didSubmit ? cartModalContent :''}
+      {isSubmitting && !didSubmit ? <p>Submitting</p>:'' }
+      {!isSubmitting&& didSubmit ? didSubmitContent:''}
       
     </Modal>
   );
